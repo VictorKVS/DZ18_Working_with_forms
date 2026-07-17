@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Сообщения ({{ total_count }})</h2>
+        
+        <!-- Фильтры -->
+        <div class="btn-group" role="group">
+            <a href="?filter=all" class="btn btn-outline-primary {% if filter_type == 'all' %}active{% endif %}">
+                Все
+            </a>
+            <a href="?filter=unread" class="btn btn-outline-warning {% if filter_type == 'unread' %}active{% endif %}">
+                Непрочитанные
+            </a>
+            <a href="?filter=overdue" class="btn btn-outline-danger {% if filter_type == 'overdue' %}active{% endif %}">
+                Просроченные
+            </a>
+        </div>
+    </div>
+    
+    <!-- Список сообщений -->
+    <div id="message-list" class="list-group mb-4">
+        {% for message in page_obj %}
+        <a href="{% url 'feedback:message_detail' message.id %}" 
+           class="list-group-item list-group-item-action {% if not message.is_read %}list-group-item-info{% endif %} {% if message.is_overdue %}list-group-item-danger{% endif %}">
+            <div class="d-flex w-100 justify-content-between align-items-start">
+                <div class="flex-grow-1">
+                    <h5 class="mb-1">
+                        {{ message.name }}
+                        {% if not message.is_read %}
+                            <span class="badge bg-primary">Новое</span>
+                        {% endif %}
+                        {% if message.is_overdue %}
+                            <span class="badge bg-danger">Просрочено</span>
+                        {% endif %}
+                    </h5>
+                    <p class="mb-1 text-muted small">{{ message.email }}</p>
+                    <p class="mb-1">{{ message.text|truncatechars:150 }}</p>
+                </div>
+                <div class="text-end">
+                    <small class="text-muted d-block">
+                        <i class="bi bi-clock"></i> {{ message.created_at|date:"d.m.Y H:i" }}
+                    </small>
+                    {% if message.response_deadline %}
+                    <small class="d-block mt-1 {% if message.is_overdue %}text-danger{% else %}text-warning{% endif %}">
+                        <i class="bi bi-hourglass-split"></i> 
+                        {% if message.is_overdue %}
+                            Просрочено
+                        {% else %}
+                            {{ message.get_time_remaining }}
+                        {% endif %}
+                    </small>
+                    {% endif %}
+                    {% if message.replies_count > 0 %}
+                    <span class="badge bg-secondary mt-2">
+                        <i class="bi bi-chat-dots"></i> {{ message.replies_count }} ответов
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </a>
+        {% empty %}
+        <div class="alert alert-info">
+            <i class="bi bi-inbox"></i> Сообщений пока нет
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Пагинация -->
+    {% if page_obj.has_other_pages %}
+    <nav aria-label="Навигация по страницам">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}&filter={{ filter_type }}">
+                    <i class="bi bi-chevron-left"></i> Предыдущая
+                </a>
+            </li>
+            {% endif %}
+            
+            <li class="page-item disabled">
+                <span class="page-link">
+                    Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
+                </span>
+            </li>
+            
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}&filter={{ filter_type }}">
+                    Следующая <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,352 @@
+<!--
+accounts/templates/accounts/register.html
+=========================================
+
+🏛️ Архитектура и нотация:
+    Уровень: Presentation Layer + Form UI Component
+    Нотация: Registration Form Template (Шаблон формы регистрации)
+    Роль: Отображает форму регистрации нового пользователя с современным UX:
+          - Floating labels (всплывающие метки) для всех полей
+          - Красивое отображение ошибок валидации с иконками и цветами
+          - Карточный дизайн с тенью и скруглениями
+          - Адаптивная верстка для мобильных устройств
+          - Визуальная обратная связь при фокусе на полях
+
+📥 Входные данные:
+    Источник: Представление register из accounts/views.py.
+    Формат: Контекст с переменной form (экземпляр CustomUserCreationForm).
+    Зависимости: Наследуется от base.html, использует Bootstrap 5 и Bootstrap Icons.
+
+⚙️ Алгоритм и логика:
+    1. Наследование от base.html: Получаем навигацию, футер и flash-сообщения.
+    2. Центрированная карточка: Форма размещается в карточке с тенью по центру экрана.
+    3. Floating Labels: Каждое поле использует <div class="form-floating"> для 
+       всплывающей метки.
+    4. Отображение ошибок:
+       - Если поле имеет ошибки (form.field.errors), добавляем класс is-invalid.
+       - Под полем отображается <div class="invalid-feedback"> с текстом ошибки.
+    5. Кастомные стили:
+       - Анимация метки при фокусе.
+       - Градиентная кнопка с hover-эффектом.
+       - Иконки внутри полей (опционально).
+    6. CSRF-токен: Обязательный {% csrf_token %} для защиты от атак.
+
+📤 Выходные данные:
+    Результат: HTML-страница с формой регистрации, готовая к вводу данных.
+    Побочные эффекты: При отправке формы данные POST-запросом уходят в 
+                      accounts/views.py.
+
+🎨 Визуальные особенности:
+    - Floating labels с плавной анимацией
+    - Карточка формы с тенью и скруглениями
+    - Красные рамки и иконки для полей с ошибками
+    - Градиентная кнопка отправки с hover-эффектом
+    - Адаптивный дизайн (макс. ширина 500px)
+-->
+
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Регистрация | DZ18: Работа с формами{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ========================================================================= */
+    /* КОНТЕЙНЕР ФОРМЫ */
+    /* ========================================================================= */
+    .registration-container {
+        min-height: calc(100vh - 200px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 0;
+    }
+    
+    /* ========================================================================= */
+    /* КАРТОЧКА ФОРМЫ */
+    /* ========================================================================= */
+    .registration-card {
+        background: white;
+        border-radius: 1rem;
+        box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175);
+        padding: 3rem;
+        max-width: 500px;
+        width: 100%;
+        transition: transform 0.3s ease-in-out;
+    }
+    
+    .registration-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    /* ========================================================================= */
+    /* ЗАГОЛОВОК ФОРМЫ */
+    /* ========================================================================= */
+    .form-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    .form-header-icon {
+        font-size: 3rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 1rem;
+    }
+    
+    .form-header-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #212529;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-header-subtitle {
+        color: #6c757d;
+        font-size: 1rem;
+    }
+    
+    /* ========================================================================= */
+    /* FLOATING LABELS (ВСПЛЫВАЮЩИЕ МЕТКИ) */
+    /* ========================================================================= */
+    .form-floating > .form-control {
+        border: 2px solid #e9ecef;
+        border-radius: 0.5rem;
+        padding: 1rem 0.75rem;
+        height: auto;
+        transition: all 0.3s ease-in-out;
+    }
+    
+    .form-floating > .form-control:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.25rem rgba(102, 126, 234, 0.25);
+    }
+    
+    .form-floating > label {
+        color: #6c757d;
+        padding: 1rem 0.75rem;
+        transition: all 0.2s ease-in-out;
+    }
+    
+    .form-floating > .form-control:focus ~ label,
+    .form-floating > .form-control:not(:placeholder-shown) ~ label {
+        color: #667eea;
+        font-weight: 500;
+        transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
+    }
+    
+    /* ========================================================================= */
+    /* ОШИБКИ ВАЛИДАЦИИ */
+    /* ========================================================================= */
+    .form-control.is-invalid {
+        border-color: #dc3545;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 1rem center;
+        background-size: 1rem;
+    }
+    
+    .invalid-feedback {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #dc3545;
+        font-size: 0.875rem;
+        margin-top: 0.5rem;
+        animation: slideIn 0.3s ease-in-out;
+    }
+    
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* ========================================================================= */
+    /* КНОПКА ОТПРАВКИ */
+    /* ========================================================================= */
+    .btn-register {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        color: white;
+        font-weight: 600;
+        padding: 0.875rem 2rem;
+        border-radius: 0.5rem;
+        width: 100%;
+        transition: all 0.3s ease-in-out;
+        box-shadow: 0 0.5rem 1rem rgba(102, 126, 234, 0.3);
+    }
+    
+    .btn-register:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0.75rem 1.5rem rgba(102, 126, 234, 0.4);
+        color: white;
+    }
+    
+    .btn-register:active {
+        transform: translateY(0);
+    }
+    
+    /* ========================================================================= */
+    /* ССЫЛКА НА ВХОД */
+    /* ========================================================================= */
+    .login-link {
+        text-align: center;
+        margin-top: 1.5rem;
+        color: #6c757d;
+    }
+    
+    .login-link a {
+        color: #667eea;
+        font-weight: 600;
+        text-decoration: none;
+        transition: color 0.2s ease-in-out;
+    }
+    
+    .login-link a:hover {
+        color: #764ba2;
+        text-decoration: underline;
+    }
+    
+    /* ========================================================================= */
+    /* ПОДСКАЗКИ ПО ПОЛЯМ */
+    /* ========================================================================= */
+    .form-text {
+        font-size: 0.75rem;
+        color: #6c757d;
+        margin-top: 0.25rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="registration-container">
+    <div class="registration-card">
+        
+        <!-- ================================================================= -->
+        <!-- ЗАГОЛОВОК ФОРМЫ -->
+        <!-- ================================================================= -->
+        <div class="form-header">
+            <div class="form-header-icon">
+                <i class="bi bi-person-plus-fill"></i>
+            </div>
+            <h2 class="form-header-title">Регистрация</h2>
+            <p class="form-header-subtitle">
+                Создайте учетную запись для доступа ко всем функциям
+            </p>
+        </div>
+        
+        <!-- ================================================================= -->
+        <!-- ФОРМА РЕГИСТРАЦИИ -->
+        <!-- ================================================================= -->
+        <form method="post" novalidate>
+            {% csrf_token %}
+            
+            <!-- Поле: Имя пользователя -->
+            <div class="form-floating mb-3">
+                <input 
+                    type="text" 
+                    class="form-control {% if form.username.errors %}is-invalid{% endif %}"
+                    id="id_username"
+                    name="username"
+                    placeholder="Имя пользователя"
+                    value="{{ form.username.value|default:'' }}"
+                    required
+                    autofocus
+                >
+                <label for="id_username">
+                    <i class="bi bi-person"></i> Имя пользователя
+                </label>
+                {% if form.username.errors %}
+                    <div class="invalid-feedback">
+                        <i class="bi bi-exclamation-circle"></i>
+                        {{ form.username.errors.0 }}
+                    </div>
+                {% endif %}
+                {% if form.username.help_text %}
+                    <div class="form-text">{{ form.username.help_text }}</div>
+                {% endif %}
+            </div>
+            
+            <!-- Поле: Email -->
+            <div class="form-floating mb-3">
+                <input 
+                    type="email" 
+                    class="form-control {% if form.email.errors %}is-invalid{% endif %}"
+                    id="id_email"
+                    name="email"
+                    placeholder="Email"
+                    value="{{ form.email.value|default:'' }}"
+                    required
+                >
+                <label for="id_email">
+                    <i class="bi bi-envelope"></i> Email
+                </label>
+                {% if form.email.errors %}
+                    <div class="invalid-feedback">
+                        <i class="bi bi-exclamation-circle"></i>
+                        {{ form.email.errors.0 }}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- Поле: Пароль -->
+            <div class="form-floating mb-3">
+                <input 
+                    type="password" 
+                    class="form-control {% if form.password1.errors %}is-invalid{% endif %}"
+                    id="id_password1"
+                    name="password1"
+                    placeholder="Пароль"
+                    required
+                >
+                <label for="id_password1">
+                    <i class="bi bi-lock"></i> Пароль
+                </label>
+                {% if form.password1.errors %}
+                    <div class="invalid-feedback">
+                        <i class="bi bi-exclamation-circle"></i>
+                        {{ form.password1.errors.0 }}
+                    </div>
+                {% endif %}
+                {% if form.password1.help_text %}
+                    <div class="form-text">{{ form.password1.help_text }}</div>
+                {% endif %}
+            </div>
+            
+            <!-- Поле: Подтверждение пароля -->
+            <div class="form-floating mb-4">
+                <input 
+                    type="password" 
+                    class="form-control {% if form.password2.errors %}is-invalid{% endif %}"
+                    id="id_password2"
+                    name="password2"
+                    placeholder="Подтверждение пароля"
+                    required
+                >
+                <label for="id_password2">
+                    <i class="bi bi-lock-fill"></i> Подтверждение пароля
+                </label>
+                {% if form.password2.errors %}
+                    <div class="invalid-feedback">
+                        <i class="bi bi-exclamation-circle"></i>
+                        {{ form.password2.errors.0 }}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- Кнопка отправки -->
+            <button type="submit" class="btn btn-register">
+                <i class="bi bi-person-plus"></i> Зарегистрироваться
+            </button>
+            
+            <!-- Ссылка на вход -->
+            <div class="login-link">
+                Уже есть аккаунт? <a href="{% url 'login' %}">Войти</a>
+            </div>
+            
+        </form>
+    </div>
+</div>
+{% endblock %}

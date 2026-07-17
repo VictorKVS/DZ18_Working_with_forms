@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+
+{% block title %}Регистрация | DZ18{% endblock %}
+
+{% block extra_css %}
+<style>
+    .registration-container {
+        min-height: calc(100vh - 250px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 0;
+    }
+    
+    .registration-card {
+        background: white;
+        border-radius: 1rem;
+        box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175);
+        padding: 3rem;
+        max-width: 500px;
+        width: 100%;
+    }
+    
+    .form-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    .form-header-icon {
+        font-size: 3rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .form-floating > .form-control:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.25rem rgba(102, 126, 234, 0.25);
+    }
+    
+    .btn-register {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        color: white;
+        font-weight: 600;
+        padding: 0.875rem;
+        border-radius: 0.5rem;
+        width: 100%;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-register:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0.5rem 1rem rgba(102, 126, 234, 0.3);
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="registration-container">
+    <div class="registration-card">
+        <div class="form-header">
+            <div class="form-header-icon">
+                <i class="bi bi-person-plus-fill"></i>
+            </div>
+            <h2>Регистрация</h2>
+            <p class="text-muted">Создайте учётную запись</p>
+        </div>
+        
+        <form method="post" novalidate>
+            {% csrf_token %}
+            
+            <!-- Username -->
+            <div class="form-floating mb-3">
+                <input type="text" 
+                       class="form-control {% if form.username.errors %}is-invalid{% endif %}"
+                       id="id_username"
+                       name="username"
+                       placeholder="Имя пользователя"
+                       value="{{ form.username.value|default:'' }}"
+                       required autofocus>
+                <label for="id_username"><i class="bi bi-person"></i> Имя пользователя</label>
+                {% if form.username.errors %}
+                    <div class="invalid-feedback">
+                        <i class="bi bi-exclamation-circle"></i> {{ form.username.errors.0 }}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- Email -->
+            <div class="form-floating mb-3">
+                <input type="email" 
+                       class="form-control {% if form.email.errors %}is-invalid{% endif %}"
+                       id="id_email"
+                       name="email"
+                       placeholder="Email"
+                       value="{{ form.email.value|default:'' }}"
+                       required>
+                <label for="id_email"><i class="bi bi-envelope"></i> Email</label>
+                {% if form.email.errors %}
+                    <div class="invalid-feedback">
+                        <i class="bi bi-exclamation-circle"></i> {{ form.email.errors.0 }}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- Password1 -->
+            <div class="form-floating mb-3">
+                <input type="password" 
+                       class="form-control {% if form.password1.errors %}is-invalid{% endif %}"
+                       id="id_password1"
+                       name="password1"
+                       placeholder="Пароль"
+                       required>
+                <label for="id_password1"><i class="bi bi-lock"></i> Пароль</label>
+                {% if form.password1.errors %}
+                    <div class="invalid-feedback">
+                        <i class="bi bi-exclamation-circle"></i> {{ form.password1.errors.0 }}
+                    </div>
+                {% endif %}
+                {% if form.password1.help_text %}
+                    <div class="form-text">{{ form.password1.help_text|safe }}</div>
+                {% endif %}
+            </div>
+            
+            <!-- Password2 -->
+            <div class="form-floating mb-4">
+                <input type="password" 
+                       class="form-control {% if form.password2.errors %}is-invalid{% endif %}"
+                       id="id_password2"
+                       name="password2"
+                       placeholder="Подтверждение пароля"
+                       required>
+                <label for="id_password2"><i class="bi bi-lock-fill"></i> Подтверждение пароля</label>
+                {% if form.password2.errors %}
+                    <div class="invalid-feedback">
+                        <i class="bi bi-exclamation-circle"></i> {{ form.password2.errors.0 }}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <button type="submit" class="btn btn-register">
+                <i class="bi bi-person-plus"></i> Зарегистрироваться
+            </button>
+            
+            <div class="text-center mt-3">
+                Уже есть аккаунт? <a href="{% url 'login' %}">Войти</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

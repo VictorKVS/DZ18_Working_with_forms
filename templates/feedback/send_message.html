@@ -1,0 +1,195 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Отправить сообщение | DZ18{% endblock %}
+
+{% block extra_css %}
+<style>
+    .message-container {
+        min-height: calc(100vh - 250px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 0;
+    }
+    .message-card {
+        background: white;
+        border-radius: 1rem;
+        box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175);
+        padding: 3rem;
+        max-width: 600px;
+        width: 100%;
+    }
+    .form-header { text-align: center; margin-bottom: 2rem; }
+    .form-header-icon {
+        font-size: 3rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    .ajax-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-left: 0.5rem;
+        vertical-align: middle;
+    }
+    .char-counter { text-align: right; font-size: 0.75rem; color: #6c757d; margin-top: 0.25rem; }
+    .char-counter.warning { color: #fd7e14; font-weight: 600; }
+    .char-counter.danger { color: #dc3545; font-weight: 600; }
+    .btn-send {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none; color: white; font-weight: 600; padding: 0.875rem;
+        border-radius: 0.5rem; width: 100%;
+    }
+    .btn-send:disabled { opacity: 0.7; cursor: not-allowed; }
+    .response-alert { display: none; margin-top: 1.5rem; padding: 1rem; border-radius: 0.5rem; }
+    .response-alert.success { background-color: #d1e7dd; border: 1px solid #badbcc; color: #0f5132; }
+    .response-alert.error { background-color: #f8d7da; border: 1px solid #f5c2c7; color: #842029; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="message-container">
+    <div class="message-card">
+        <div class="form-header">
+            <div class="form-header-icon"><i class="bi bi-chat-dots-fill"></i></div>
+            <h2>Отправить сообщение <span class="ajax-badge"><i class="bi bi-lightning-fill"></i> Ajax</span></h2>
+            <p class="text-muted">Без перезагрузки страницы</p>
+        </div>
+        
+        <div id="responseAlert" class="response-alert"></div>
+        
+        <form id="messageForm" method="post" action="{% url 'feedback:send_message' %}" novalidate>
+            {% csrf_token %}
+            
+            <div class="form-floating mb-3">
+                <input type="text" class="form-control" id="id_name" name="name" placeholder="Ваше имя" value="{{ form.name.value|default:'' }}" required maxlength="100" autofocus>
+                <label for="id_name"><i class="bi bi-person"></i> Ваше имя</label>
+                <div class="invalid-feedback" id="error_name" style="display: none;"><i class="bi bi-exclamation-circle"></i> <span></span></div>
+            </div>
+            
+            <div class="form-floating mb-3">
+                <input type="email" class="form-control" id="id_email" name="email" placeholder="Email" value="{{ form.email.value|default:'' }}" required>
+                <label for="id_email"><i class="bi bi-envelope"></i> Email</label>
+                <div class="invalid-feedback" id="error_email" style="display: none;"><i class="bi bi-exclamation-circle"></i> <span></span></div>
+            </div>
+            
+            <div class="form-floating mb-2">
+                <textarea class="form-control" id="id_text" name="text" placeholder="Текст сообщения" style="height: 120px" required maxlength="500">{{ form.text.value|default:'' }}</textarea>
+                <label for="id_text"><i class="bi bi-chat-left-text"></i> Текст сообщения</label>
+                <div class="invalid-feedback" id="error_text" style="display: none;"><i class="bi bi-exclamation-circle"></i> <span></span></div>
+            </div>
+            
+            <div class="char-counter" id="charCounter"><span id="currentChars">0</span> / 500 символов</div>
+            
+            <button type="submit" class="btn btn-send mt-4" id="submitBtn"><i class="bi bi-send"></i> Отправить сообщение</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    'use strict';
+    const form = document.getElementById('messageForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const responseAlert = document.getElementById('responseAlert');
+    const textArea = document.getElementById('id_text');
+    const charCounter = document.getElementById('charCounter');
+    const currentChars = document.getElementById('currentChars');
+    const MAX_CHARS = 500;
+    let isSubmitting = false;
+
+    function updateCharCounter() {
+        const length = textArea.value.length;
+        currentChars.textContent = length;
+        charCounter.classList.remove('warning', 'danger');
+        if (length >= MAX_CHARS) charCounter.classList.add('danger');
+        else if (length >= MAX_CHARS * 0.8) charCounter.classList.add('warning');
+    }
+    updateCharCounter();
+    textArea.addEventListener('input', updateCharCounter);
+
+    function clearFieldErrors() {
+        form.querySelectorAll('.form-control').forEach(f => f.classList.remove('is-invalid'));
+        ['name', 'email', 'text'].forEach(name => {
+            const err = document.getElementById(`error_${name}`);
+            if (err) { err.style.display = 'none'; err.querySelector('span').textContent = ''; }
+        });
+    }
+
+    function showFieldError(fieldName, message) {
+        const field = document.getElementById(`id_${fieldName}`);
+        const err = document.getElementById(`error_${fieldName}`);
+        if (field && err) {
+            field.classList.add('is-invalid');
+            err.querySelector('span').textContent = message;
+            err.style.display = 'flex';
+        }
+    }
+
+    function showAlert(type, message) {
+        responseAlert.className = `response-alert ${type}`;
+        responseAlert.innerHTML = '';
+        const icon = document.createElement('i');
+        icon.className = type === 'success' ? 'bi bi-check-circle-fill' : 'bi bi-exclamation-triangle-fill';
+        const text = document.createElement('strong');
+        text.textContent = message; // Безопасно от XSS
+        responseAlert.appendChild(icon);
+        responseAlert.appendChild(document.createTextNode(' '));
+        responseAlert.appendChild(text);
+        responseAlert.style.display = 'block';
+        if (type === 'success') setTimeout(() => { responseAlert.style.display = 'none'; }, 5000);
+    }
+
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        if (isSubmitting) return;
+        isSubmitting = true;
+        responseAlert.style.display = 'none';
+        clearFieldErrors();
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Отправка...';
+
+        const formData = new FormData(form);
+        const csrfToken = formData.get('csrfmiddlewaretoken');
+
+        try {
+            const response = await fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken }
+            });
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                showAlert('success', data.message || 'Сообщение отправлено!');
+                form.reset();
+                updateCharCounter();
+            } else if (data.status === 'error' && data.errors) {
+                for (const [field, errors] of Object.entries(data.errors)) {
+                    if (errors && errors.length > 0) showFieldError(field, errors[0]);
+                }
+                showAlert('error', 'Пожалуйста, исправьте ошибки в форме.');
+            } else {
+                showAlert('error', 'Произошла непредвиденная ошибка.');
+            }
+        } catch (error) {
+            console.error('Ajax error:', error);
+            showAlert('error', 'Ошибка соединения с сервером.');
+        } finally {
+            isSubmitting = false;
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-send"></i> Отправить сообщение';
+        }
+    });
+})();
+</script>
+{% endblock %}
