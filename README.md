@@ -11,14 +11,14 @@
 **Цель:** Разработка веб-приложения с формами регистрации, авторизации и отправки сообщений.
 
 ### Этапы выполнения (ТЗ):
-1. ✅ **Модель пользователя** — используем встроенную `User` Django
-2. ✅ **Формы** — регистрация, авторизация, отправка сообщения (ModelForm)
-3. ✅ **Валидация** — кастомная проверка email, паролей, длины текста
-4. ✅ **Обработка форм** — редиректы после успеха, flash-сообщения
-5. ✅ **Ajax** — отправка сообщений без перезагрузки страницы
-6. ✅ **Шаблоны** — Bootstrap 5, floating labels, страница профиля
-7. ✅ **Маршруты** — URLs для всех представлений
-8. ✅ **Документация** — данный README
+- [x] **Модель пользователя** — используем встроенную `User` Django
+- [x] **Формы** — регистрация, авторизация, отправка сообщения (ModelForm)
+- [x] **Валидация** — кастомная проверка email, паролей, длины текста
+- [x] **Обработка форм** — редиректы после успеха, flash-messages
+- [x] **Ajax** — отправка сообщений без перезагрузки страницы (Fetch API)
+- [x] **Шаблоны** — Bootstrap 5, floating labels, страница профиля
+- [x] **Маршруты** — URLs для всех представлений
+- [x] **Документация** — данный README и архитектурные схемы
 
 ---
 
@@ -27,20 +27,6 @@
 ### Component Diagram (C4 Model)
 
 ```mermaid
-graph TD
-    Client["🌐 Клиент"] -->|"HTTP/Ajax"| Views["👁️ Views Layer"]
-    Views -->|"Вызов"| Services["⚙️ Services Layer"]
-    Services -->|"CRUD"| Models["🗄️ Models"]
-    Views -->|"Чтение"| Selectors["📖 Selectors Layer"]
-    Selectors -->|"Query"| Models
-    Views -->|"Рендер"| Templates["🎨 Templates"]
-
-    Agent-Ready Architecture
-Services Layer — бизнес-логика (импортируется AI-агентами)
-Selectors Layer — чтение данных (CQRS-lite)
-Views Layer — тонкие HTTP-обёртки
-
-
 graph TD
     %% --- СТИЛИЗАЦИЯ ДЛЯ ПРЕЗЕНТАЦИОННОГО ВИДА ---
     classDef client fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000,font-weight:bold
@@ -71,18 +57,18 @@ graph TD
             AccSelectors["📖 Selectors\n(Read Operations)"] :::app
         end
 
-        subgraph Messages ["✉️ messages App"]
-            MsgViews["👁️ Views\n(HTTP + Ajax Handler)"] :::app
-            MsgForms["📝 Forms\n(Length <= 500 validation)"] :::app
-            MsgServices["🤖 Services\n(MessageService)"] :::app
-            MsgSelectors["📖 Selectors\n(get_user_messages)"] :::app
+        subgraph Feedback ["✉️ feedback App"]
+            FbViews["👁️ Views\n(HTTP + Ajax Handler)"] :::app
+            FbForms["📝 Forms\n(Length <= 500 validation)"] :::app
+            FbServices["🤖 Services\n(MessageService)"] :::app
+            FbSelectors["📖 Selectors\n(get_user_messages)"] :::app
         end
     end
 
     %% --- СЛОЙ ДАННЫХ ---
     subgraph Data ["🗄️ Data Layer"]
         ORM["⚙️ Django ORM"] :::data
-        DB[("🗃️ SQLite Database\n(User, UserMessage)")] :::data
+        DB[("🗃️ SQLite Database\n(User, Message)")] :::data
     end
 
     %% --- СКВОЗНЫЕ ПРОЦЕССЫ ---
@@ -93,37 +79,37 @@ graph TD
 
     %% --- СВЯЗИ И ПОТОКИ ДАННЫХ ---
     Client -->|"1. HTTP GET/POST или Ajax"| Router
-    Static -.->|"2. Async Fetch + CSRF Token"| MsgViews
+    Static -.->|"2. Async Fetch + CSRF Token"| FbViews
     
     Router -->|"3. Dispatch"| AccViews
-    Router -->|"3. Dispatch"| MsgViews
+    Router -->|"3. Dispatch"| FbViews
     
     AccViews -->|"4. Validate"| AccForms
-    MsgViews -->|"4. Validate"| MsgForms
+    FbViews -->|"4. Validate"| FbForms
     
     AccViews -->|"5. Execute Business Logic"| AccServices
     AccViews -->|"6. Read Data"| AccSelectors
-    MsgViews -->|"5. Execute Business Logic"| MsgServices
-    MsgViews -->|"6. Read Data"| MsgSelectors
+    FbViews -->|"5. Execute Business Logic"| FbServices
+    FbViews -->|"6. Read Data"| FbSelectors
     
     AccServices -->|"7. CRUD"| ORM
     AccSelectors -->|"7. Query"| ORM
-    MsgServices -->|"7. CRUD"| ORM
-    MsgSelectors -->|"7. Query"| ORM
+    FbServices -->|"7. CRUD"| ORM
+    FbSelectors -->|"7. Query"| ORM
     
     ORM -->|"8. Persist/Retrieve"| DB
     
     AccViews -->|"9. Render / Redirect"| Templates
-    MsgViews -->|"9. Render / Redirect"| Templates
-    MsgViews -.->|"10. JSON Response"| Client
+    FbViews -->|"9. Render / Redirect"| Templates
+    FbViews -.->|"10. JSON Response"| Client
     
     Templates -->|"11. HTML Response"| Client
     
     %% Связь со сквозными процессами
     AccServices -.-> Audit
-    MsgServices -.-> Audit
+    FbServices -.-> Audit
     Router -.-> Security
-    MsgViews -.-> Security
+    FbViews -.-> Security
 
 
 
