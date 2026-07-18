@@ -23,83 +23,67 @@
 ---
 
 ## 2. 🏛️ Архитектура и Схемы
-
 ### Component Diagram (C4 Model)
 
 ```mermaid
 graph TD
-    %% --- СТИЛИЗАЦИЯ (Material Design Palette) ---
-    classDef client fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000,rx:8,ry:8
-    classDef router fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000,rx:6,ry:6
-    classDef view fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000,rx:6,ry:6
-    classDef model fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px,color:#000,rx:6,ry:6
-    classDef template fill:#fff8e1,stroke:#f57f17,stroke-width:2px,color:#000,rx:6,ry:6
-    classDef storage fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000,rx:6,ry:6
-    classDef db fill:#eceff1,stroke:#455a64,stroke-width:2px,color:#000,rx:6,ry:6
+    %% --- СТИЛИЗАЦИЯ (Единый визуальный язык) ---
+    classDef client fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000,font-weight:bold
+    classDef router fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+    classDef view fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+    classDef logic fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px,color:#000
+    classDef data fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
+    classDef tmpl fill:#e0f2f1,stroke:#00695c,stroke-width:2px,color:#000
+    classDef static fill:#fff8e1,stroke:#f57f17,stroke-width:2px,color:#000
 
-    %% --- СЛОЙ 1: КЛИЕНТ ---
-    subgraph ClientLayer ["👤 Клиентский слой"]
-        Client(["🌐 Браузер / Пользователь"])
+    %% --- УЗЛЫ ---
+    Client(["🌐 Клиент / Браузер\n(HTTP + Fetch API)"]):::client
+
+    Router["🔀 URL Router\n(config/urls.py)"]:::router
+
+    subgraph Applications ["📦 Приложения (accounts / feedback)"]
+        View["👁️ Thin View\n(Обработка HTTP/AJAX, CSRF)"]:::view
+        Form["📝 Forms\n(Валидация входных данных)"]:::logic
+        Service["⚙️ Services\n(Бизнес-логика, запись)"]:::logic
+        Selector["📖 Selectors\n(Чтение данных, оптимизация)"]:::logic
+        Model[("🗄️ Models\n(User, Message)")]:::data
     end
 
-    %% --- СЛОЙ 2: ПРЕДСТАВЛЕНИЕ (Django) ---
-    subgraph PresentationLayer ["🎨 Presentation Layer (Django)"]
-        direction TB
-        Router["🔀 URL Router<br/>(config/urls.py)"]
-        
-        subgraph Views ["👁️ Views (Бизнес-логика)"]
-            ViewList["product_list"]
-            ViewDetail["product_detail"]
-        end
-        
-        subgraph Templates ["📄 Templates (HTML)"]
-            TmplBase["base.html<br/>({% extends %})"]
-            TmplList["product_list.html"]
-            TmplDetail["product_detail.html"]
-        end
-        
-        Static["🎨 Static Files<br/>(CSS, JS, {% static %})"]
-    end
+    DB[("🗃️ База данных\n(SQLite / PostgreSQL)")]:::data
 
-    %% --- СЛОЙ 3: ДАННЫЕ И ХРАНЕНИЕ ---
-    subgraph DataLayer ["🗄️ Data & Storage Layer"]
-        Model[("🗃️ Model: Product<br/>(models.py)")]
-        DB[("💾 База данных<br/>(SQLite / PostgreSQL)")]
-        Media["📁 Media Storage<br/>(Изображения)"]
-    end
+    Tmpl["📄 Templates\n(send_message.html, profile.html)"]:::tmpl
+    TmplBase["📄 Template: base.html\n(Наследование)"]:::tmpl
+    Static["🎨 Static Assets\n(Bootstrap 5, AJAX JS)"]:::static
 
-    %% --- ПОТОК ДАННЫХ (DATA FLOW) ---
-    Client ==>|1. HTTP GET /| Router
-    Router ==>|2. Маршрутизация| ViewList
-    Router ==>|2. Маршрутизация| ViewDetail
+    %% --- ПОТОКИ ДАННЫХ (DATA FLOW) ---
+    %% 1. Инициация
+    Client -->|"1. HTTP GET / POST (или Fetch API)"| Router
 
-    ViewList ==>|3. QuerySet.all()| Model
-    ViewDetail ==>|3. QuerySet.get(id)| Model
+    %% 2. Маршрутизация
+    Router -->|"2. Dispatch"| View
 
-    Model -.->|4. ORM Запрос| DB
-    Model -.->|5. Ссылка на файл| Media
+    %% 3. Внутренняя логика View (Разделение обязанностей)
+    View -->|"3a. Валидация"| Form
+    View -->|"3b. Запись (Write)"| Service
+    View -->|"3c. Чтение (Read)"| Selector
 
-    ViewList ==>|6. Передача Context| TmplList
-    ViewDetail ==>|6. Передача Context| TmplDetail
+    %% 4. Слой бизнес-логики
+    Form -.->|"Очищенные данные"| Service
+    Service -->|"4. CRUD операции"| Model
+    Selector -->|"4. QuerySet"| Model
 
-    TmplList -.->|7. Наследование| TmplBase
-    TmplDetail -.->|7. Наследование| TmplBase
+    %% 5. Данные
+    Model -->|"5. Сохранение / Извлечение"| DB
 
-    TmplBase ==>|8. Подключение| Static
-    
-    TmplList ==>|9. HTML Response| Client
-    TmplDetail ==>|9. HTML Response| Client
-    Static ==>|10. CSS/JS Assets| Client
-    Media ==>|11. Image Assets| Client
+    %% 6. Рендеринг (HTTP) или JSON (AJAX)
+    View -->|"6a. Context (HTML)"| Tmpl
+    View -.->|"6b. JsonResponse (AJAX)"| Client
 
-    %% --- ПРИМЕНЕНИЕ СТИЛЕЙ ---
-    class Client client;
-    class Router router;
-    class ViewList,ViewDetail view;
-    class Model model;
-    class DB db;
-    class TmplBase,TmplList,TmplDetail template;
-    class Static,Media storage;
+    %% 7. Шаблоны и статика
+    Tmpl -.->|"7. {% extends %}"| TmplBase
+    TmplBase -->|"8. {% static %}"| Static
+    Static -->|"9. CSS/JS загрузка"| Client
+    Tmpl -->|"10. HTML Response"| Client
 
 ## 3. 🧪 Тестирование (TDD)
 
