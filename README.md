@@ -4,6 +4,7 @@
 **Репозиторий:** [VictorKVS/DZ18_Working_with_forms](https://github.com/VictorKVS/DZ18_Working_with_forms)  
 **Статус:** ✅ Выполнено по стандарту TDD с agent-ready архитектурой
 
+---
 
 ## 1. 📋 Условие задачи
 
@@ -21,97 +22,84 @@
 
 ---
 
-## 2. 🏛️ Архитектура
+## 2. 🏛️ Архитектура и Схемы
 
 ### Component Diagram (C4 Model)
 
 ```mermaid
 graph TD
-    %% --- СТИЛИЗАЦИЯ ДЛЯ ПРЕЗЕНТАЦИОННОГО ВИДА ---
-    classDef client fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000,font-weight:bold
-    classDef web fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
-    classDef app fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-    classDef data fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px,color:#000
-    classDef cross fill:#eceff1,stroke:#455a64,stroke-width:2px,stroke-dasharray: 5 5,color:#000
+    %% --- СТИЛИЗАЦИЯ (Material Design Palette) ---
+    classDef client fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000,rx:8,ry:8
+    classDef router fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000,rx:6,ry:6
+    classDef view fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000,rx:6,ry:6
+    classDef model fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px,color:#000,rx:6,ry:6
+    classDef template fill:#fff8e1,stroke:#f57f17,stroke-width:2px,color:#000,rx:6,ry:6
+    classDef storage fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000,rx:6,ry:6
+    classDef db fill:#eceff1,stroke:#455a64,stroke-width:2px,color:#000,rx:6,ry:6
 
-    %% --- КЛИЕНТСКИЙ СЛОЙ ---
-    Client(("👤 Пользователь / Браузер")) :::client
-
-    %% --- СЛОЙ ПРЕДСТАВЛЕНИЯ И МАРШРУТИЗАЦИИ ---
-    subgraph Presentation ["🌐 Presentation & Routing Layer"]
-        direction TB
-        Static["⚡ Static Assets\n(JS: Fetch API, CSS: Bootstrap 5)"] :::web
-        Templates["🎨 Templates\n(Floating Labels, Responsive)"] :::web
-        Router["🔀 Django URL Dispatcher\n(config/urls.py)"] :::web
+    %% --- СЛОЙ 1: КЛИЕНТ ---
+    subgraph ClientLayer ["👤 Клиентский слой"]
+        Client(["🌐 Браузер / Пользователь"])
     end
 
-    %% --- СЛОЙ БИЗНЕС-ЛОГИКИ (AGENT-READY) ---
-    subgraph Application ["⚙️ Application Layer (Agent-Ready / CQRS-lite)"]
+    %% --- СЛОЙ 2: ПРЕДСТАВЛЕНИЕ (Django) ---
+    subgraph PresentationLayer ["🎨 Presentation Layer (Django)"]
         direction TB
+        Router["🔀 URL Router<br/>(config/urls.py)"]
         
-        subgraph Accounts ["🔐 accounts App"]
-            AccViews["👁️ Views\n(Thin HTTP Wrappers)"] :::app
-            AccForms["📝 Forms\n(Custom Validation)"] :::app
-            AccServices["🤖 Services\n(UserService)"] :::app
-            AccSelectors["📖 Selectors\n(Read Operations)"] :::app
+        subgraph Views ["👁️ Views (Бизнес-логика)"]
+            ViewList["product_list"]
+            ViewDetail["product_detail"]
         end
-
-        subgraph Feedback ["✉️ feedback App"]
-            FbViews["👁️ Views\n(HTTP + Ajax Handler)"] :::app
-            FbForms["📝 Forms\n(Length <= 500 validation)"] :::app
-            FbServices["🤖 Services\n(MessageService)"] :::app
-            FbSelectors["📖 Selectors\n(get_user_messages)"] :::app
+        
+        subgraph Templates ["📄 Templates (HTML)"]
+            TmplBase["base.html<br/>({% extends %})"]
+            TmplList["product_list.html"]
+            TmplDetail["product_detail.html"]
         end
+        
+        Static["🎨 Static Files<br/>(CSS, JS, {% static %})"]
     end
 
-    %% --- СЛОЙ ДАННЫХ ---
-    subgraph Data ["🗄️ Data Layer"]
-        ORM["⚙️ Django ORM"] :::data
-        DB[("🗃️ SQLite Database\n(User, Message)")] :::data
+    %% --- СЛОЙ 3: ДАННЫЕ И ХРАНЕНИЕ ---
+    subgraph DataLayer ["🗄️ Data & Storage Layer"]
+        Model[("🗃️ Model: Product<br/>(models.py)")]
+        DB[("💾 База данных<br/>(SQLite / PostgreSQL)")]
+        Media["📁 Media Storage<br/>(Изображения)"]
     end
 
-    %% --- СКВОЗНЫЕ ПРОЦЕССЫ ---
-    subgraph CrossCutting ["🛡️ Cross-Cutting Concerns (Security & Audit)"]
-        Security["🔒 CSRF, Auth, Input Sanitization"] :::cross
-        Audit["📝 Audit Logging\n(INFO/WARNING trails)"] :::cross
-    end
+    %% --- ПОТОК ДАННЫХ (DATA FLOW) ---
+    Client ==>|1. HTTP GET /| Router
+    Router ==>|2. Маршрутизация| ViewList
+    Router ==>|2. Маршрутизация| ViewDetail
 
-    %% --- СВЯЗИ И ПОТОКИ ДАННЫХ ---
-    Client -->|"1. HTTP GET/POST или Ajax"| Router
-    Static -.->|"2. Async Fetch + CSRF Token"| FbViews
-    
-    Router -->|"3. Dispatch"| AccViews
-    Router -->|"3. Dispatch"| FbViews
-    
-    AccViews -->|"4. Validate"| AccForms
-    FbViews -->|"4. Validate"| FbForms
-    
-    AccViews -->|"5. Execute Business Logic"| AccServices
-    AccViews -->|"6. Read Data"| AccSelectors
-    FbViews -->|"5. Execute Business Logic"| FbServices
-    FbViews -->|"6. Read Data"| FbSelectors
-    
-    AccServices -->|"7. CRUD"| ORM
-    AccSelectors -->|"7. Query"| ORM
-    FbServices -->|"7. CRUD"| ORM
-    FbSelectors -->|"7. Query"| ORM
-    
-    ORM -->|"8. Persist/Retrieve"| DB
-    
-    AccViews -->|"9. Render / Redirect"| Templates
-    FbViews -->|"9. Render / Redirect"| Templates
-    FbViews -.->|"10. JSON Response"| Client
-    
-    Templates -->|"11. HTML Response"| Client
-    
-    %% Связь со сквозными процессами
-    AccServices -.-> Audit
-    FbServices -.-> Audit
-    Router -.-> Security
-    FbViews -.-> Security
+    ViewList ==>|3. QuerySet.all()| Model
+    ViewDetail ==>|3. QuerySet.get(id)| Model
 
-```
+    Model -.->|4. ORM Запрос| DB
+    Model -.->|5. Ссылка на файл| Media
 
+    ViewList ==>|6. Передача Context| TmplList
+    ViewDetail ==>|6. Передача Context| TmplDetail
+
+    TmplList -.->|7. Наследование| TmplBase
+    TmplDetail -.->|7. Наследование| TmplBase
+
+    TmplBase ==>|8. Подключение| Static
+    
+    TmplList ==>|9. HTML Response| Client
+    TmplDetail ==>|9. HTML Response| Client
+    Static ==>|10. CSS/JS Assets| Client
+    Media ==>|11. Image Assets| Client
+
+    %% --- ПРИМЕНЕНИЕ СТИЛЕЙ ---
+    class Client client;
+    class Router router;
+    class ViewList,ViewDetail view;
+    class Model model;
+    class DB db;
+    class TmplBase,TmplList,TmplDetail template;
+    class Static,Media storage;
 
 ## 3. 🧪 Тестирование (TDD)
 
