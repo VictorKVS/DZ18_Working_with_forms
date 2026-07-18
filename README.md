@@ -4,7 +4,6 @@
 **Репозиторий:** [VictorKVS/DZ18_Working_with_forms](https://github.com/VictorKVS/DZ18_Working_with_forms)  
 **Статус:** ✅ Выполнено по стандарту TDD с agent-ready архитектурой
 
----
 
 ## 1. 📋 Условие задачи
 
