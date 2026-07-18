@@ -148,7 +148,7 @@ graph TD
 ## 5. 📂 Структура проекта
 
 ```text
-```
+
 DZ18_Working_with_forms/
 │
 ├── 📄 manage.py                    # Точка входа Django
