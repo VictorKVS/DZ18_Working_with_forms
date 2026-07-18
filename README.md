@@ -264,7 +264,7 @@ python manage.py runserver
 # http://127.0.0.1:8000/feedback/
 ```
 🏭 Промышленный цикл разработки (IDC)
-```
+
 ┌─────────────────────────────────────────────────────────────┐
 │              INDUSTRIAL DEVELOPMENT CYCLE (IDC)             │
 │                                                             │
