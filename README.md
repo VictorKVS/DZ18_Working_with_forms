@@ -84,6 +84,7 @@ graph TD
     TmplBase -->|"8. {% static %}"| Static
     Static -->|"9. CSS/JS загрузка"| Client
     Tmpl -->|"10. HTML Response"| Client
+```
 
 ## 3. 🧪 Тестирование (TDD)
 
